@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useHiveStore } from '../store';
-import { Monitor, Terminal as TerminalIcon, Power } from 'lucide-react';
+import { Monitor, Terminal as TerminalIcon } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();

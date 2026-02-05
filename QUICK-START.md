@@ -4,6 +4,30 @@
 
 **Repository:** https://github.com/coff33ninja/satellite-hive
 
+## ✅ Installation Status
+
+### Central Server - OPERATIONAL ✅
+- ✅ Dependencies installed
+- ✅ Database migrated (sql.js - no native compilation needed)
+- ✅ Server running on http://localhost:3000
+- ✅ Login API tested and working
+- ✅ Health endpoint responding
+- ✅ Static file serving configured
+- ✅ Web UI built and deployed
+
+### Web UI - OPERATIONAL ✅
+- ✅ Dependencies installed
+- ✅ Production build completed
+- ✅ Served at http://localhost:3000
+- ✅ Ready for testing
+
+### Satellite Agent - REQUIRES GO ⚠️
+- ⚠️ Go 1.21+ not installed
+- Install from: https://go.dev/dl/
+- Once installed: `cd satellite-agent && go run . --server ws://localhost:3000/ws/agent --name "test-agent"`
+
+---
+
 ## 🚀 Get Running in 3 Minutes
 
 ### Prerequisites

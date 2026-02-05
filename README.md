@@ -16,6 +16,48 @@ A distributed fleet management system with AI integration via Model Context Prot
 - 🌐 **Cross-platform** - Windows, Linux, macOS support
 - 💻 **Modern Web UI** - React dashboard with xterm.js terminal emulator
 
+## Installation Status
+
+### ✅ Central Server - WORKING
+The central server has been successfully installed and tested:
+- Database migrated with admin user created (sql.js - no native compilation)
+- Server running on http://localhost:3000
+- Login API tested and working
+- Health endpoint responding
+- Static file serving configured for web UI
+
+### ✅ Web UI - WORKING
+The web UI has been built and is being served:
+- Dependencies installed
+- Production build completed (dist folder)
+- Accessible at http://localhost:3000
+- Login page ready for testing
+
+### ⚠️ Satellite Agent - Requires Go Installation
+The satellite agent requires Go 1.21+ to be installed. 
+
+**To install Go on Windows:**
+1. Download from https://go.dev/dl/
+2. Run the installer
+3. Restart your terminal
+4. Verify with `go version`
+
+**Then install and run the agent:**
+```bash
+cd satellite-agent
+go mod download
+go run . --server ws://localhost:3000/ws/agent --name "my-agent"
+```
+
+### 🔧 Database Migration
+The database has been successfully migrated using sql.js (pure JavaScript SQLite implementation) instead of better-sqlite3 to avoid Windows SDK compilation requirements.
+
+**Changes made:**
+- Replaced `better-sqlite3` with `sql.js` (no native compilation needed)
+- Fixed ESM imports for `bcryptjs` and `jsonwebtoken`
+- Database automatically creates on first run
+- Admin user created: admin@example.com / admin123
+
 ## Quick Start
 
 ### 1. Start Central Server

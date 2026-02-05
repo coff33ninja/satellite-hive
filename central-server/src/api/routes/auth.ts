@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { sign } from 'jsonwebtoken';
-import { compare } from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { DB } from '../../db/index.js';
 import type { Config } from '../../types/index.js';
 
@@ -26,7 +26,7 @@ export function createAuthRouter(db: DB, config: Config) {
       }, 401);
     }
 
-    const valid = await compare(password, user.passwordHash);
+    const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       return c.json({
         success: false,
@@ -34,7 +34,7 @@ export function createAuthRouter(db: DB, config: Config) {
       }, 401);
     }
 
-    const token = sign(
+    const token = jwt.sign(
       {
         sub: user.id,
         email: user.email,

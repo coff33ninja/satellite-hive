@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { WebSocketServer } from 'ws';
 import { readFileSync } from 'fs';
 import { createServer as createHttpsServer } from 'https';
@@ -17,7 +18,10 @@ import { createSatellitesRouter } from './api/routes/satellites.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { mkdir } from 'fs/promises';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
   console.log('🛰️  Starting Satellite Hive Central Server...');
@@ -31,7 +35,7 @@ async function main() {
   await mkdir(dirname(dbPath), { recursive: true });
 
   // Initialize database
-  const db = new DB(dbPath);
+  const db = await DB.create(dbPath);
   console.log(`💾 Database initialized at ${dbPath}`);
 
   // Initialize services
@@ -65,6 +69,15 @@ async function main() {
   const authMiddleware = createAuthMiddleware(config);
   app.use('/api/v1/satellites/*', authMiddleware);
   app.route('/api/v1/satellites', createSatellitesRouter(deviceRegistry, auditLogger, agentHub));
+
+  // Serve static files from web-ui/dist
+  // In development, __dirname is central-server/src, so go up 2 levels then into web-ui/dist
+  const webUiPath = join(__dirname, '../..', 'web-ui', 'dist');
+  console.log(`📁 Serving static files from: ${webUiPath}`);
+  app.use('/*', serveStatic({ root: webUiPath }));
+  
+  // Fallback to index.html for SPA routing
+  app.get('*', serveStatic({ path: join(webUiPath, 'index.html') }));
 
   // Start server (HTTP or HTTPS)
   let server;

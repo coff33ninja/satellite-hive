@@ -1,5 +1,5 @@
 import { Context, Next } from 'hono';
-import { verify } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import type { Config } from '../types/index.js';
 
 export function createAuthMiddleware(config: Config) {
@@ -30,7 +30,7 @@ export function createAuthMiddleware(config: Config) {
     const token = authHeader.substring(7);
 
     try {
-      const decoded = verify(token, config.auth.jwt_secret) as any;
+      const decoded = jwt.verify(token, config.auth.jwt_secret) as any;
       c.set('user', decoded);
       return next();
     } catch (error) {

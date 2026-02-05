@@ -1,31 +1,64 @@
-import Database from 'better-sqlite3';
+import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { dirname } from 'path';
 import { initializeDatabase } from './schema.js';
 import type { User, Satellite, Session } from '../types/index.js';
 
 export class DB {
-  private db: Database.Database;
+  private db: SqlJsDatabase;
+  private dbPath: string;
 
   constructor(path: string) {
-    this.db = new Database(path);
-    this.db.pragma('journal_mode = WAL');
-    initializeDatabase(this.db);
+    this.dbPath = path;
+    // Constructor is now synchronous wrapper - actual init happens in static create()
+    throw new Error('Use DB.create() instead of new DB()');
+  }
+
+  static async create(path: string): Promise<DB> {
+    const SQL = await initSqlJs();
+    const instance = Object.create(DB.prototype);
+    instance.dbPath = path;
+    
+    // Ensure directory exists
+    const dir = dirname(path);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    
+    if (existsSync(path)) {
+      const buffer = readFileSync(path);
+      instance.db = new SQL.Database(buffer);
+    } else {
+      instance.db = new SQL.Database();
+    }
+    
+    initializeDatabase(instance.db);
+    instance.save();
+    return instance;
+  }
+
+  private save() {
+    const data = this.db.export();
+    writeFileSync(this.dbPath, data);
   }
 
   // Users
   createUser(user: Omit<User, 'createdAt' | 'updatedAt'>) {
-    const stmt = this.db.prepare(`
+    this.db.run(`
       INSERT INTO users (id, email, password_hash, roles, is_active)
       VALUES (?, ?, ?, ?, ?)
-    `);
-    stmt.run(user.id, user.email, user.passwordHash, JSON.stringify(user.roles), user.isActive ? 1 : 0);
+    `, [user.id, user.email, user.passwordHash, JSON.stringify(user.roles), user.isActive ? 1 : 0]);
+    this.save();
   }
 
   getUserByEmail(email: string): User | undefined {
-    const stmt = this.db.prepare('SELECT * FROM users WHERE email = ?');
-    const row = stmt.get(email) as any;
-    if (!row) return undefined;
+    const result = this.db.exec('SELECT * FROM users WHERE email = ?', [email]);
+    if (!result.length || !result[0].values.length) return undefined;
+    const row = this.rowToObject(result[0].columns, result[0].values[0]);
     return {
-      ...row,
+      id: row.id,
+      email: row.email,
+      passwordHash: row.password_hash,
       roles: JSON.parse(row.roles),
       isActive: row.is_active === 1,
       createdAt: new Date(row.created_at),
@@ -34,11 +67,13 @@ export class DB {
   }
 
   getUserById(id: string): User | undefined {
-    const stmt = this.db.prepare('SELECT * FROM users WHERE id = ?');
-    const row = stmt.get(id) as any;
-    if (!row) return undefined;
+    const result = this.db.exec('SELECT * FROM users WHERE id = ?', [id]);
+    if (!result.length || !result[0].values.length) return undefined;
+    const row = this.rowToObject(result[0].columns, result[0].values[0]);
     return {
-      ...row,
+      id: row.id,
+      email: row.email,
+      passwordHash: row.password_hash,
       roles: JSON.parse(row.roles),
       isActive: row.is_active === 1,
       createdAt: new Date(row.created_at),
@@ -46,15 +81,22 @@ export class DB {
     };
   }
 
+  private rowToObject(columns: string[], values: any[]): any {
+    const obj: any = {};
+    columns.forEach((col, i) => {
+      obj[col] = values[i];
+    });
+    return obj;
+  }
+
   // Satellites
   createSatellite(satellite: Omit<Satellite, 'createdAt' | 'updatedAt' | 'tags'>) {
-    const stmt = this.db.prepare(`
+    this.db.run(`
       INSERT INTO satellites (
         id, name, token_hash, status, system_info, hostname, os, os_version, arch,
         last_ip, last_seen, first_seen, agent_version, capabilities
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
+    `, [
       satellite.id,
       satellite.name,
       satellite.tokenHash,
@@ -69,34 +111,35 @@ export class DB {
       satellite.firstSeen.toISOString(),
       satellite.agentVersion,
       JSON.stringify(satellite.capabilities)
-    );
+    ]);
+    this.save();
   }
 
   getSatelliteById(id: string): Satellite | undefined {
-    const stmt = this.db.prepare('SELECT * FROM satellites WHERE id = ?');
-    const row = stmt.get(id) as any;
-    if (!row) return undefined;
-
+    const result = this.db.exec('SELECT * FROM satellites WHERE id = ?', [id]);
+    if (!result.length || !result[0].values.length) return undefined;
+    const row = this.rowToObject(result[0].columns, result[0].values[0]);
     const tags = this.getSatelliteTags(id);
     return this.rowToSatellite(row, tags);
   }
 
   getAllSatellites(): Satellite[] {
-    const stmt = this.db.prepare('SELECT * FROM satellites ORDER BY name');
-    const rows = stmt.all() as any[];
-    return rows.map(row => {
+    const result = this.db.exec('SELECT * FROM satellites ORDER BY name');
+    if (!result.length) return [];
+    return result[0].values.map(values => {
+      const row = this.rowToObject(result[0].columns, values);
       const tags = this.getSatelliteTags(row.id);
       return this.rowToSatellite(row, tags);
     });
   }
 
   updateSatelliteStatus(id: string, status: 'online' | 'offline', lastSeen?: Date, lastIp?: string) {
-    const stmt = this.db.prepare(`
+    this.db.run(`
       UPDATE satellites 
       SET status = ?, last_seen = ?, last_ip = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `);
-    stmt.run(status, lastSeen?.toISOString(), lastIp, id);
+    `, [status, lastSeen?.toISOString(), lastIp, id]);
+    this.save();
   }
 
   private rowToSatellite(row: any, tags: string[]): Satellite {
@@ -123,39 +166,39 @@ export class DB {
 
   // Tags
   getSatelliteTags(satelliteId: string): string[] {
-    const stmt = this.db.prepare('SELECT tag FROM satellite_tags WHERE satellite_id = ?');
-    const rows = stmt.all(satelliteId) as any[];
-    return rows.map(r => r.tag);
+    const result = this.db.exec('SELECT tag FROM satellite_tags WHERE satellite_id = ?', [satelliteId]);
+    if (!result.length) return [];
+    return result[0].values.map(v => v[0] as string);
   }
 
   addSatelliteTag(satelliteId: string, tag: string) {
-    const stmt = this.db.prepare('INSERT OR IGNORE INTO satellite_tags (satellite_id, tag) VALUES (?, ?)');
-    stmt.run(satelliteId, tag);
+    this.db.run('INSERT OR IGNORE INTO satellite_tags (satellite_id, tag) VALUES (?, ?)', [satelliteId, tag]);
+    this.save();
   }
 
   // Sessions
   createSession(session: Omit<Session, 'createdAt' | 'endedAt' | 'endReason' | 'exitCode'>) {
-    const stmt = this.db.prepare(`
+    this.db.run(`
       INSERT INTO sessions (id, satellite_id, user_id, status, cols, rows, shell)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(session.id, session.satelliteId, session.userId, session.status, session.cols, session.rows, session.shell);
+    `, [session.id, session.satelliteId, session.userId, session.status, session.cols, session.rows, session.shell]);
+    this.save();
   }
 
   getSessionById(id: string): Session | undefined {
-    const stmt = this.db.prepare('SELECT * FROM sessions WHERE id = ?');
-    const row = stmt.get(id) as any;
-    if (!row) return undefined;
+    const result = this.db.exec('SELECT * FROM sessions WHERE id = ?', [id]);
+    if (!result.length || !result[0].values.length) return undefined;
+    const row = this.rowToObject(result[0].columns, result[0].values[0]);
     return this.rowToSession(row);
   }
 
   updateSessionStatus(id: string, status: 'ended' | 'error', endReason?: string, exitCode?: number) {
-    const stmt = this.db.prepare(`
+    this.db.run(`
       UPDATE sessions 
       SET status = ?, ended_at = CURRENT_TIMESTAMP, end_reason = ?, exit_code = ?
       WHERE id = ?
-    `);
-    stmt.run(status, endReason, exitCode, id);
+    `, [status, endReason, exitCode, id]);
+    this.save();
   }
 
   private rowToSession(row: any): Session {
@@ -189,13 +232,12 @@ export class DB {
     result: 'success' | 'failure';
     errorMessage?: string;
   }) {
-    const stmt = this.db.prepare(`
+    this.db.run(`
       INSERT INTO audit_logs (
         id, actor_type, actor_id, actor_name, actor_ip, action,
         target_type, target_id, target_name, details, result, error_message
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
+    `, [
       log.id,
       log.actorType,
       log.actorId,
@@ -208,7 +250,8 @@ export class DB {
       log.details ? JSON.stringify(log.details) : null,
       log.result,
       log.errorMessage
-    );
+    ]);
+    this.save();
   }
 
   close() {

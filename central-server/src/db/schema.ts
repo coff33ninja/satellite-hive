@@ -1,8 +1,8 @@
-import Database from 'better-sqlite3';
+import type { Database as SqlJsDatabase } from 'sql.js';
 
-export function initializeDatabase(db: Database.Database) {
+export function initializeDatabase(db: SqlJsDatabase) {
   // Users table
-  db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
@@ -15,7 +15,7 @@ export function initializeDatabase(db: Database.Database) {
   `);
 
   // Satellites table
-  db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS satellites (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -37,7 +37,7 @@ export function initializeDatabase(db: Database.Database) {
   `);
 
   // Satellite tags
-  db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS satellite_tags (
       satellite_id TEXT NOT NULL,
       tag TEXT NOT NULL,
@@ -48,7 +48,7 @@ export function initializeDatabase(db: Database.Database) {
   `);
 
   // Sessions table
-  db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
       satellite_id TEXT NOT NULL,
@@ -67,7 +67,7 @@ export function initializeDatabase(db: Database.Database) {
   `);
 
   // Audit logs
-  db.exec(`
+  db.run(`
     CREATE TABLE IF NOT EXISTS audit_logs (
       id TEXT PRIMARY KEY,
       timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -86,12 +86,10 @@ export function initializeDatabase(db: Database.Database) {
   `);
 
   // Create indexes
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_satellites_status ON satellites(status);
-    CREATE INDEX IF NOT EXISTS idx_satellites_last_seen ON satellites(last_seen);
-    CREATE INDEX IF NOT EXISTS idx_satellite_tags_tag ON satellite_tags(tag);
-    CREATE INDEX IF NOT EXISTS idx_sessions_satellite_id ON sessions(satellite_id);
-    CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
-    CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
-  `);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_satellites_status ON satellites(status);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_satellites_last_seen ON satellites(last_seen);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_satellite_tags_tag ON satellite_tags(tag);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sessions_satellite_id ON sessions(satellite_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);`);
 }

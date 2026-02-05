@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws';
-import { verify } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { DeviceRegistry } from '../services/deviceRegistry.js';
 import { SessionManager } from '../services/sessionManager.js';
 import { AgentHub } from './agentHub.js';
@@ -28,7 +28,7 @@ export class UIHub {
     let userId: string | undefined;
 
     try {
-      const decoded = verify(token, this.config.auth.jwt_secret) as any;
+      const decoded = jwt.verify(token, this.config.auth.jwt_secret) as any;
       userId = decoded.sub;
     } catch (error) {
       ws.send(JSON.stringify({
