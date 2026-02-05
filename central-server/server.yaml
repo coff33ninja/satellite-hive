@@ -1,0 +1,30 @@
+server:
+  host: "0.0.0.0"
+  port: 3000
+  external_url: "http://localhost:3000"
+
+tls:
+  enabled: false
+  cert_file: ""
+  key_file: ""
+
+database:
+  driver: "sqlite"
+  connection: "./data/hive.db"
+
+auth:
+  jwt_secret: "change-this-to-a-secure-random-string-in-production"
+  jwt_expiration: "24h"
+  admin_api_key: "admin-key-change-me"
+
+agents:
+  heartbeat_timeout: "90s"
+  max_sessions_per_agent: 10
+
+logging:
+  level: "info"
+  format: "text"
+
+audit:
+  enabled: true
+  retention_days: 90
