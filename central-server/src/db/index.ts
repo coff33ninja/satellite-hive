@@ -91,6 +91,22 @@ export class DB {
 
   // Satellites
   createSatellite(satellite: Omit<Satellite, 'createdAt' | 'updatedAt' | 'tags'>) {
+    // Log all values to debug
+    console.log('[DB] Creating satellite with values:', {
+      id: satellite.id,
+      name: satellite.name,
+      tokenHash: satellite.tokenHash,
+      status: satellite.status,
+      hostname: satellite.hostname,
+      os: satellite.os,
+      osVersion: satellite.osVersion,
+      arch: satellite.arch,
+      lastIp: satellite.lastIp,
+      lastSeen: satellite.lastSeen,
+      firstSeen: satellite.firstSeen,
+      agentVersion: satellite.agentVersion,
+    });
+    
     this.db.run(`
       INSERT INTO satellites (
         id, name, token_hash, status, system_info, hostname, os, os_version, arch,

@@ -1,4 +1,5 @@
 import { WebSocket } from 'ws';
+import type { WebSocket as WSWebSocket } from 'ws';
 import jwt from 'jsonwebtoken';
 import { DeviceRegistry } from '../services/deviceRegistry.js';
 import { SessionManager } from '../services/sessionManager.js';
@@ -24,7 +25,7 @@ export class UIHub {
     this.config = config;
   }
 
-  handleConnection(ws: WebSocket, token: string) {
+  handleConnection(ws: WSWebSocket, token: string) {
     let userId: string | undefined;
 
     try {
@@ -68,7 +69,7 @@ export class UIHub {
     });
   }
 
-  private handleUIMessage(userId: string, message: any, ws: WebSocket) {
+  private handleUIMessage(userId: string, message: any, ws: WSWebSocket) {
     const { action, request_id, data } = message;
 
     switch (action) {
@@ -93,7 +94,7 @@ export class UIHub {
     }
   }
 
-  private handleCreateSession(userId: string, data: any, requestId: string, ws: WebSocket) {
+  private handleCreateSession(userId: string, data: any, requestId: string, ws: WSWebSocket) {
     const { satellite_id, cols, rows, shell } = data;
 
     if (!this.registry.isOnline(satellite_id)) {

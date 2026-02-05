@@ -40,8 +40,8 @@ export function createAuthRouter(db: DB, config: Config) {
         email: user.email,
         roles: user.roles,
       },
-      config.auth.jwt_secret,
-      { expiresIn: config.auth.jwt_expiration }
+      String(config.auth.jwt_secret),
+      { expiresIn: String(config.auth.jwt_expiration) }
     );
 
     return c.json({

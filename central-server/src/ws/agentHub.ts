@@ -1,4 +1,5 @@
 import { WebSocket } from 'ws';
+import type { WebSocket as WSWebSocket } from 'ws';
 import { DeviceRegistry } from '../services/deviceRegistry.js';
 import { SessionManager } from '../services/sessionManager.js';
 import { AuditLogger } from '../services/auditLogger.js';
@@ -23,7 +24,7 @@ export class AgentHub {
     this.config = config;
   }
 
-  handleConnection(ws: WebSocket) {
+  handleConnection(ws: WSWebSocket) {
     let satelliteId: string | undefined;
     let authenticated = false;
 
@@ -111,7 +112,7 @@ export class AgentHub {
     });
   }
 
-  private handleAgentMessage(satelliteId: string, message: any, ws: WebSocket) {
+  private handleAgentMessage(satelliteId: string, message: any, ws: WSWebSocket) {
     switch (message.type) {
       case 'heartbeat_pong':
         // Update last seen
@@ -188,9 +189,9 @@ export class AgentHub {
     return this.commandResults.get(requestId);
   }
 
-  private uiConnections = new Set<WebSocket>();
+  private uiConnections = new Set<WSWebSocket>();
 
-  registerUIConnection(ws: WebSocket) {
+  registerUIConnection(ws: WSWebSocket) {
     this.uiConnections.add(ws);
     ws.on('close', () => this.uiConnections.delete(ws));
   }
@@ -204,7 +205,7 @@ export class AgentHub {
     }
   }
 
-  private startHeartbeat(satelliteId: string, ws: WebSocket) {
+  private startHeartbeat(satelliteId: string, ws: WSWebSocket) {
     const interval = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({

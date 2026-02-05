@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid';
 import { DB } from '../db/index.js';
 import type { Satellite, SystemInfo } from '../types/index.js';
 import { createHash } from 'crypto';
+import type { WebSocket } from 'ws';
 
 export class DeviceRegistry {
   private db: DB;
@@ -16,33 +17,51 @@ export class DeviceRegistry {
     token: string;
     name: string;
     version: string;
-    systemInfo: SystemInfo;
+    systemInfo: any; // Use any to handle snake_case from agent
     capabilities: string[];
     tags?: string[];
   }): Promise<{ satellite: Satellite; isNew: boolean }> {
     const tokenHash = createHash('sha256').update(data.token).digest('hex');
     
+    // Normalize agentId - treat empty string as undefined
+    const agentId = data.agentId && data.agentId.trim() !== '' ? data.agentId : undefined;
+    
     // Check if satellite exists
-    let satellite = data.agentId ? this.db.getSatelliteById(data.agentId) : undefined;
+    let satellite = agentId ? this.db.getSatelliteById(agentId) : undefined;
     let isNew = false;
 
     if (!satellite) {
       // Create new satellite
-      const id = data.agentId || `sat_${nanoid(12)}`;
+      const id = agentId || `sat_${nanoid(12)}`;
       
-      // Ensure all required fields are defined
+      // Map snake_case from agent to camelCase
       const systemInfo = data.systemInfo;
+      const normalizedSystemInfo: SystemInfo = {
+        hostname: systemInfo.hostname || 'unknown',
+        os: systemInfo.os || 'unknown',
+        osVersion: systemInfo.os_version || systemInfo.osVersion || 'unknown',
+        arch: systemInfo.arch || 'unknown',
+        kernel: systemInfo.kernel,
+        uptimeSeconds: systemInfo.uptime_seconds || 0,
+        cpuCores: systemInfo.cpu_cores || 0,
+        memoryTotalMb: systemInfo.memory_total_mb || 0,
+        memoryAvailableMb: systemInfo.memory_available_mb || 0,
+        diskTotalGb: systemInfo.disk_total_gb || 0,
+        diskAvailableGb: systemInfo.disk_available_gb || 0,
+        ipAddresses: systemInfo.ip_addresses || [],
+        macAddresses: systemInfo.mac_addresses || [],
+      };
       
       satellite = {
         id,
         name: data.name || 'unknown',
         tokenHash,
         status: 'online',
-        systemInfo: systemInfo,
-        hostname: systemInfo.hostname || 'unknown',
-        os: systemInfo.os || 'unknown',
-        osVersion: systemInfo.osVersion || 'unknown',
-        arch: systemInfo.arch || 'unknown',
+        systemInfo: normalizedSystemInfo,
+        hostname: normalizedSystemInfo.hostname,
+        os: normalizedSystemInfo.os,
+        osVersion: normalizedSystemInfo.osVersion,
+        arch: normalizedSystemInfo.arch,
         lastIp: undefined,
         lastSeen: new Date(),
         firstSeen: new Date(),
@@ -56,7 +75,7 @@ export class DeviceRegistry {
       this.db.createSatellite(satellite);
       
       // Add tags
-      if (data.tags) {
+      if (data.tags && data.tags.length > 0) {
         for (const tag of data.tags) {
           this.db.addSatelliteTag(id, tag);
         }
