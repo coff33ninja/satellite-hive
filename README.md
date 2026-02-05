@@ -58,6 +58,42 @@ The database has been successfully migrated using sql.js (pure JavaScript SQLite
 - Database automatically creates on first run
 - Admin user created: admin@example.com / admin123
 
+## Quick Testing (After Go Installation)
+
+**IMPORTANT:** After installing Go, you must restart your terminal/PowerShell for the `go` command to be recognized.
+
+### Option 1: Automated Test (Recommended)
+```powershell
+# Run the automated test script
+.\test-system.ps1
+```
+
+This will verify:
+- ✓ Go installation
+- ✓ Server health
+- ✓ Login API
+- ✓ Web UI
+- ✓ Go dependencies
+
+### Option 2: Manual Testing
+
+**Terminal 1 - Server (already running):**
+```bash
+cd central-server
+npm run dev
+```
+
+**Terminal 2 - Agent (after restarting terminal):**
+```bash
+cd satellite-agent
+go run . --server ws://localhost:3000/ws/agent --name "test-agent"
+```
+
+**Browser:**
+Open http://localhost:3000 and login with:
+- Email: `admin@example.com`
+- Password: `admin123`
+
 ## Quick Start
 
 ### 1. Start Central Server
