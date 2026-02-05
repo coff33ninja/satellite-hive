@@ -106,8 +106,8 @@ export class DB {
       satellite.os,
       satellite.osVersion,
       satellite.arch,
-      satellite.lastIp,
-      satellite.lastSeen?.toISOString(),
+      satellite.lastIp || null,
+      satellite.lastSeen?.toISOString() || null,
       satellite.firstSeen.toISOString(),
       satellite.agentVersion,
       JSON.stringify(satellite.capabilities)
@@ -138,7 +138,7 @@ export class DB {
       UPDATE satellites 
       SET status = ?, last_seen = ?, last_ip = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [status, lastSeen?.toISOString(), lastIp, id]);
+    `, [status, lastSeen?.toISOString() || null, lastIp || null, id]);
     this.save();
   }
 

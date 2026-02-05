@@ -29,21 +29,25 @@ export class DeviceRegistry {
     if (!satellite) {
       // Create new satellite
       const id = data.agentId || `sat_${nanoid(12)}`;
+      
+      // Ensure all required fields are defined
+      const systemInfo = data.systemInfo;
+      
       satellite = {
         id,
-        name: data.name,
+        name: data.name || 'unknown',
         tokenHash,
         status: 'online',
-        systemInfo: data.systemInfo,
-        hostname: data.systemInfo.hostname,
-        os: data.systemInfo.os,
-        osVersion: data.systemInfo.osVersion,
-        arch: data.systemInfo.arch,
+        systemInfo: systemInfo,
+        hostname: systemInfo.hostname || 'unknown',
+        os: systemInfo.os || 'unknown',
+        osVersion: systemInfo.osVersion || 'unknown',
+        arch: systemInfo.arch || 'unknown',
         lastIp: undefined,
         lastSeen: new Date(),
         firstSeen: new Date(),
-        agentVersion: data.version,
-        capabilities: data.capabilities,
+        agentVersion: data.version || '1.0.0',
+        capabilities: data.capabilities || [],
         tags: data.tags || [],
         createdAt: new Date(),
         updatedAt: new Date(),

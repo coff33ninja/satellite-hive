@@ -33,6 +33,8 @@ export class AgentHub {
 
         if (message.type === 'handshake' && !authenticated) {
           // Handle handshake
+          console.log('[AgentHub] Received handshake:', JSON.stringify(message, null, 2));
+          
           const result = await this.registry.register({
             agentId: message.agent_id,
             token: message.token,
@@ -80,6 +82,7 @@ export class AgentHub {
         }
       } catch (error) {
         console.error('[AgentHub] Error handling message:', error);
+        console.error('[AgentHub] Error stack:', (error as Error).stack);
         ws.send(JSON.stringify({
           type: 'error',
           error: { code: 'INTERNAL_ERROR', message: 'Failed to process message' },
