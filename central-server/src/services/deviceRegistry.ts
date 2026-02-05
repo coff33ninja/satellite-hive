@@ -29,6 +29,32 @@ export class DeviceRegistry {
     // Check if satellite exists
     let satellite = agentId ? this.db.getSatelliteById(agentId) : undefined;
     let isNew = false;
+    let tagsToUse = data.tags || [];
+
+    // If this is a new satellite, check if token is a provision token
+    if (!satellite && data.token.startsWith('prov_')) {
+      const provisionToken = this.db.getProvisionToken(data.token);
+      
+      if (!provisionToken) {
+        throw new Error('Invalid provision token');
+      }
+      
+      if (provisionToken.isRevoked) {
+        throw new Error('Provision token has been revoked');
+      }
+      
+      if (provisionToken.usedAt) {
+        throw new Error('Provision token has already been used');
+      }
+      
+      if (new Date() > provisionToken.expiresAt) {
+        throw new Error('Provision token has expired');
+      }
+      
+      // Use provision token's tags
+      tagsToUse = provisionToken.tags;
+      console.log(`[Registry] Using provision token: ${provisionToken.name}`);
+    }
 
     if (!satellite) {
       // Create new satellite
@@ -67,7 +93,7 @@ export class DeviceRegistry {
         firstSeen: new Date(),
         agentVersion: data.version || '1.0.0',
         capabilities: data.capabilities || [],
-        tags: data.tags || [],
+        tags: tagsToUse,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -75,10 +101,16 @@ export class DeviceRegistry {
       this.db.createSatellite(satellite);
       
       // Add tags
-      if (data.tags && data.tags.length > 0) {
-        for (const tag of data.tags) {
+      if (tagsToUse.length > 0) {
+        for (const tag of tagsToUse) {
           this.db.addSatelliteTag(id, tag);
         }
+      }
+
+      // Mark provision token as used if applicable
+      if (data.token.startsWith('prov_')) {
+        this.db.markProvisionTokenUsed(data.token, id);
+        console.log(`[Registry] Marked provision token as used for satellite ${id}`);
       }
 
       isNew = true;
