@@ -47,3 +47,6 @@ binaries/
 *.crt
 certs/
 !certs/.gitkeep
+
+# Agent ID
+.agent-id

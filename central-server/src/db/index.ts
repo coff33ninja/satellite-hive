@@ -97,14 +97,14 @@ export class DB {
       satellite.tokenHash,
       satellite.status,
       satellite.systemInfo ? JSON.stringify(satellite.systemInfo) : null,
-      satellite.hostname,
-      satellite.os,
-      satellite.osVersion,
-      satellite.arch,
-      satellite.lastIp || null,
-      satellite.lastSeen?.toISOString() || null,
+      satellite.hostname ?? null,
+      satellite.os ?? null,
+      satellite.osVersion ?? null,
+      satellite.arch ?? null,
+      satellite.lastIp ?? null,
+      satellite.lastSeen ? satellite.lastSeen.toISOString() : null,
       satellite.firstSeen.toISOString(),
-      satellite.agentVersion,
+      satellite.agentVersion ?? null,
       JSON.stringify(satellite.capabilities)
     ];
     
@@ -189,7 +189,7 @@ export class DB {
     this.db.run(`
       INSERT INTO sessions (id, satellite_id, user_id, status, cols, rows, shell)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [session.id, session.satelliteId, session.userId, session.status, session.cols, session.rows, session.shell]);
+    `, [session.id, session.satelliteId, session.userId, session.status, session.cols, session.rows, session.shell ?? null]);
     this.save();
   }
 
@@ -205,7 +205,7 @@ export class DB {
       UPDATE sessions 
       SET status = ?, ended_at = CURRENT_TIMESTAMP, end_reason = ?, exit_code = ?
       WHERE id = ?
-    `, [status, endReason, exitCode, id]);
+    `, [status, endReason ?? null, exitCode ?? null, id]);
     this.save();
   }
 

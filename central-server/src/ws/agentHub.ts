@@ -51,10 +51,11 @@ export class AgentHub {
 
           this.registry.setConnection(satelliteId, ws);
 
-          // Send handshake acknowledgment
+          // Send handshake acknowledgment with agent ID
           ws.send(JSON.stringify({
             type: 'handshake_ack',
             success: true,
+            agent_id: satelliteId,
             server_time: new Date().toISOString(),
             heartbeat_interval: 30,
           }));

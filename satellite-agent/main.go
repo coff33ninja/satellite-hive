@@ -82,6 +82,15 @@ func main() {
 		*name = hostname
 	}
 
+	// Load or generate agent ID
+	if *agentID == "" {
+		// Try to load from file
+		if data, err := os.ReadFile(".agent-id"); err == nil {
+			*agentID = string(data)
+			fmt.Printf("📋 Loaded agent ID: %s\n", *agentID)
+		}
+	}
+
 	config := &Config{
 		ServerURL: *serverURL,
 		AgentID:   *agentID,
@@ -95,6 +104,9 @@ func main() {
 	fmt.Printf("📡 Server: %s\n", config.ServerURL)
 	fmt.Printf("🏷️  Name: %s\n", config.Name)
 	fmt.Printf("🔑 Token: %s\n", config.Token)
+	if config.AgentID != "" {
+		fmt.Printf("🆔 Agent ID: %s\n", config.AgentID)
+	}
 	fmt.Println()
 
 	// Verify encoding/json is available (used by websocket library)
@@ -174,6 +186,19 @@ func (a *Agent) connect() error {
 
 	if response["type"] == "handshake_ack" && response["success"] == true {
 		log.Println("✅ Handshake successful!")
+		
+		// Extract and save agent ID if provided
+		if agentID, ok := response["agent_id"].(string); ok && agentID != "" {
+			if a.config.AgentID == "" || a.config.AgentID != agentID {
+				a.config.AgentID = agentID
+				if err := os.WriteFile(".agent-id", []byte(agentID), 0644); err != nil {
+					log.Printf("⚠️  Failed to save agent ID: %v", err)
+				} else {
+					log.Printf("💾 Saved agent ID: %s", agentID)
+				}
+			}
+		}
+		
 		return nil
 	}
 
