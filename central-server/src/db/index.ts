@@ -91,28 +91,7 @@ export class DB {
 
   // Satellites
   createSatellite(satellite: Omit<Satellite, 'createdAt' | 'updatedAt' | 'tags'>) {
-    // Log all values to debug
-    console.log('[DB] Creating satellite with values:', {
-      id: satellite.id,
-      name: satellite.name,
-      tokenHash: satellite.tokenHash,
-      status: satellite.status,
-      hostname: satellite.hostname,
-      os: satellite.os,
-      osVersion: satellite.osVersion,
-      arch: satellite.arch,
-      lastIp: satellite.lastIp,
-      lastSeen: satellite.lastSeen,
-      firstSeen: satellite.firstSeen,
-      agentVersion: satellite.agentVersion,
-    });
-    
-    this.db.run(`
-      INSERT INTO satellites (
-        id, name, token_hash, status, system_info, hostname, os, os_version, arch,
-        last_ip, last_seen, first_seen, agent_version, capabilities
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
+    const params = [
       satellite.id,
       satellite.name,
       satellite.tokenHash,
@@ -127,7 +106,20 @@ export class DB {
       satellite.firstSeen.toISOString(),
       satellite.agentVersion,
       JSON.stringify(satellite.capabilities)
-    ]);
+    ];
+    
+    // Log each parameter with its index
+    console.log('[DB] Insert parameters:');
+    params.forEach((param, index) => {
+      console.log(`  [${index}]: ${typeof param} = ${param === undefined ? 'UNDEFINED' : param === null ? 'NULL' : JSON.stringify(param).substring(0, 50)}`);
+    });
+    
+    this.db.run(`
+      INSERT INTO satellites (
+        id, name, token_hash, status, system_info, hostname, os, os_version, arch,
+        last_ip, last_seen, first_seen, agent_version, capabilities
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, params);
     this.save();
   }
 
@@ -256,16 +248,16 @@ export class DB {
     `, [
       log.id,
       log.actorType,
-      log.actorId,
-      log.actorName,
-      log.actorIp,
+      log.actorId || null,
+      log.actorName || null,
+      log.actorIp || null,
       log.action,
-      log.targetType,
-      log.targetId,
-      log.targetName,
+      log.targetType || null,
+      log.targetId || null,
+      log.targetName || null,
       log.details ? JSON.stringify(log.details) : null,
       log.result,
-      log.errorMessage
+      log.errorMessage || null
     ]);
     this.save();
   }

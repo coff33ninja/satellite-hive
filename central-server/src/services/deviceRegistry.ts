@@ -62,7 +62,7 @@ export class DeviceRegistry {
         os: normalizedSystemInfo.os,
         osVersion: normalizedSystemInfo.osVersion,
         arch: normalizedSystemInfo.arch,
-        lastIp: undefined,
+        lastIp: null as any, // Explicitly null for sql.js
         lastSeen: new Date(),
         firstSeen: new Date(),
         agentVersion: data.version || '1.0.0',
