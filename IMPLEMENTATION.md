@@ -8,9 +8,9 @@
 
 ## Overall Progress
 
-- **Implemented:** ~40% (Core MVP)
+- **Implemented:** ~45% (Core MVP + Sessions API)
 - **Partially Implemented:** ~10%
-- **Not Implemented:** ~50%
+- **Not Implemented:** ~45%
 
 ---
 
@@ -95,12 +95,13 @@
 - [x] `DELETE /satellites/:id` - Remove satellite
 - [x] `POST /satellites/:id/exec` - Execute command
 - [ ] `POST /satellites/:id/power` - Power command
-- [ ] `GET /satellites/:id/sessions` - List sessions
+- [x] `GET /satellites/:id/sessions` - List sessions
 
 #### Sessions
-- [ ] `POST /sessions` - Create terminal session
-- [ ] `GET /sessions/:id` - Get session info
-- [ ] `DELETE /sessions/:id` - Terminate session
+- [x] `POST /sessions` - Create terminal session
+- [x] `GET /sessions/:id` - Get session info
+- [x] `DELETE /sessions/:id` - Terminate session
+- [x] `GET /sessions` - List all sessions (with filters)
 
 #### Provisioning
 - [ ] `POST /provision` - Generate provisioned agent
@@ -208,7 +209,7 @@
 ### Pages
 - [x] Dashboard (satellite list)
 - [x] Terminal (full-screen terminal)
-- [ ] Satellite detail view
+- [x] Satellite detail view
 - [ ] Provision page
 - [ ] Audit logs page
 - [ ] Settings page
@@ -222,7 +223,7 @@
 - [x] Real-time status updates
 - [x] Quick metrics display (CPU, Memory)
 - [x] Connect button
-- [ ] Search functionality
+- [x] Search functionality
 - [ ] Tag filtering
 - [ ] Sort options
 - [ ] Bulk selection
@@ -241,10 +242,10 @@
 - [ ] Keyboard shortcuts
 
 #### Satellite Management
-- [ ] Satellite detail view
+- [x] Satellite detail view
 - [ ] Edit satellite (name, tags)
 - [ ] Delete satellite
-- [ ] View system information
+- [x] View system information
 - [ ] View metrics charts
 - [ ] View active sessions
 - [ ] Quick actions (terminal, exec, power)

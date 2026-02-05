@@ -15,6 +15,7 @@ import { AgentHub } from './ws/agentHub.js';
 import { UIHub } from './ws/uiHub.js';
 import { createAuthRouter } from './api/routes/auth.js';
 import { createSatellitesRouter } from './api/routes/satellites.js';
+import { createSessionsRouter } from './api/routes/sessions.js';
 import { createHealthRouter } from './api/routes/health.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
@@ -69,7 +70,9 @@ async function main() {
   // Protected routes
   const authMiddleware = createAuthMiddleware(config);
   app.use('/api/v1/satellites/*', authMiddleware);
-  app.route('/api/v1/satellites', createSatellitesRouter(deviceRegistry, auditLogger, agentHub));
+  app.use('/api/v1/sessions/*', authMiddleware);
+  app.route('/api/v1/satellites', createSatellitesRouter(deviceRegistry, auditLogger, agentHub, sessionManager));
+  app.route('/api/v1/sessions', createSessionsRouter(sessionManager, deviceRegistry, auditLogger, agentHub));
 
   // Serve static files from web-ui/dist
   // In development, __dirname is central-server/src, so go up 2 levels then into web-ui/dist

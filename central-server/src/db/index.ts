@@ -200,6 +200,15 @@ export class DB {
     return this.rowToSession(row);
   }
 
+  getAllSessions(): Session[] {
+    const result = this.db.exec('SELECT * FROM sessions ORDER BY created_at DESC');
+    if (!result.length) return [];
+    return result[0].values.map(values => {
+      const row = this.rowToObject(result[0].columns, values);
+      return this.rowToSession(row);
+    });
+  }
+
   updateSessionStatus(id: string, status: 'ended' | 'error', endReason?: string, exitCode?: number) {
     this.db.run(`
       UPDATE sessions 

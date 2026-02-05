@@ -67,4 +67,8 @@ export class SessionManager {
   isActive(sessionId: string): boolean {
     return this.activeSessions.has(sessionId);
   }
+
+  list(): Session[] {
+    return this.db.getAllSessions();
+  }
 }

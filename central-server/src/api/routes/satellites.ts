@@ -1,7 +1,8 @@
-import { Hono, Context } from 'hono';
+import { Hono } from 'hono';
 import { DeviceRegistry } from '../../services/deviceRegistry.js';
 import { AuditLogger } from '../../services/auditLogger.js';
 import { AgentHub } from '../../ws/agentHub.js';
+import { SessionManager } from '../../services/sessionManager.js';
 
 interface User {
   id: string;
@@ -16,7 +17,8 @@ type Variables = {
 export function createSatellitesRouter(
   registry: DeviceRegistry,
   auditLogger: AuditLogger,
-  agentHub: AgentHub
+  agentHub: AgentHub,
+  sessionManager: SessionManager
 ) {
   const app = new Hono<{ Variables: Variables }>();
 
@@ -249,7 +251,7 @@ export function createSatellitesRouter(
         }, 503);
       }
 
-      const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
       const command = {
         type: 'exec',
         request_id: requestId,
@@ -310,6 +312,47 @@ export function createSatellitesRouter(
         error: {
           code: 'INTERNAL_ERROR',
           message: 'Failed to execute command',
+        },
+      }, 500);
+    }
+  });
+
+  // Get sessions for a satellite
+  app.get('/:id/sessions', async (c) => {
+    try {
+      const { id } = c.req.param();
+      
+      const satellite = registry.getSatellite(id);
+      if (!satellite) {
+        return c.json({
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: `Satellite ${id} not found`,
+          },
+        }, 404);
+      }
+
+      const sessions = sessionManager.list().filter((s: any) => s.satelliteId === id);
+      
+      // Add active status
+      const enrichedSessions = sessions.map((s: any) => ({
+        ...s,
+        isActive: sessionManager.isActive(s.id),
+      }));
+
+      return c.json({
+        success: true,
+        data: enrichedSessions,
+        total: enrichedSessions.length,
+      });
+    } catch (error) {
+      console.error('[API] Error getting satellite sessions:', error);
+      return c.json({
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to get sessions',
         },
       }, 500);
     }
