@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useHiveStore } from '../store';
 import { Monitor, Terminal as TerminalIcon } from 'lucide-react';
 
@@ -6,9 +7,20 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const satellites = useHiveStore((state) => state.satellites);
   const setToken = useHiveStore((state) => state.setToken);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const onlineSatellites = satellites.filter(s => s.isOnline);
-  const offlineSatellites = satellites.filter(s => !s.isOnline);
+  const filteredSatellites = Array.from(satellites.values()).filter((sat) => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      sat.name.toLowerCase().includes(search) ||
+      sat.hostname?.toLowerCase().includes(search) ||
+      sat.tags.some((tag) => tag.toLowerCase().includes(search))
+    );
+  });
+
+  const onlineSatellites = filteredSatellites.filter(s => s.isOnline);
+  const offlineSatellites = filteredSatellites.filter(s => !s.isOnline);
 
   const handleLogout = () => {
     setToken(null);
@@ -34,7 +46,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-gray-800 p-4 rounded-lg">
             <div className="text-gray-400 text-sm">Total Satellites</div>
-            <div className="text-3xl font-bold">{satellites.length}</div>
+            <div className="text-3xl font-bold">{filteredSatellites.length}</div>
           </div>
           <div className="bg-gray-800 p-4 rounded-lg">
             <div className="text-gray-400 text-sm">Online</div>
@@ -46,9 +58,20 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Search */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Search satellites by name, hostname, or tag..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
         {/* Satellite List */}
         <div className="space-y-3">
-          {satellites.map((satellite) => (
+          {filteredSatellites.map((satellite) => (
             <div
               key={satellite.id}
               className="bg-gray-800 p-4 rounded-lg flex items-center justify-between hover:bg-gray-750 transition"
@@ -72,6 +95,12 @@ export default function Dashboard() {
 
               <div className="flex gap-2">
                 <button
+                  onClick={() => navigate(`/satellites/${satellite.id}`)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded transition"
+                >
+                  Details
+                </button>
+                <button
                   onClick={() => navigate(`/terminal/${satellite.id}`)}
                   disabled={!satellite.isOnline}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded flex items-center gap-2 transition"
@@ -83,7 +112,13 @@ export default function Dashboard() {
             </div>
           ))}
 
-          {satellites.length === 0 && (
+          {filteredSatellites.length === 0 && searchTerm && (
+            <div className="text-center py-12 text-gray-400">
+              <p>No satellites match "{searchTerm}"</p>
+            </div>
+          )}
+
+          {filteredSatellites.length === 0 && !searchTerm && (
             <div className="text-center py-12 text-gray-400">
               <Monitor size={48} className="mx-auto mb-4 opacity-50" />
               <p>No satellites connected</p>

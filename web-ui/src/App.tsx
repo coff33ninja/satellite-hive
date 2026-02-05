@@ -4,6 +4,7 @@ import { useWebSocket } from './hooks/useWebSocket';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Terminal from './pages/Terminal';
+import SatelliteDetail from './pages/SatelliteDetail';
 
 function App() {
   const token = useHiveStore((state) => state.token);
@@ -17,6 +18,7 @@ function App() {
     <div className="min-h-screen bg-gray-900 text-white">
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/satellites/:id" element={<SatelliteDetail />} />
         <Route path="/terminal/:satelliteId" element={<Terminal />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

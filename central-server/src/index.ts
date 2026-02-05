@@ -15,6 +15,7 @@ import { AgentHub } from './ws/agentHub.js';
 import { UIHub } from './ws/uiHub.js';
 import { createAuthRouter } from './api/routes/auth.js';
 import { createSatellitesRouter } from './api/routes/satellites.js';
+import { createHealthRouter } from './api/routes/health.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { mkdir } from 'fs/promises';
@@ -59,8 +60,8 @@ async function main() {
   app.use('/api/v1/auth/login', rateLimit({ windowMs: 60000, maxRequests: 5 }));
   app.use('/api/v1/*', rateLimit({ windowMs: 60000, maxRequests: 100 }));
 
-  // Health check (no auth required)
-  app.get('/health', (c) => c.json({ status: 'healthy', timestamp: new Date().toISOString() }));
+  // Health checks (no auth required)
+  app.route('/health', createHealthRouter(db));
 
   // API routes
   app.route('/api/v1/auth', createAuthRouter(db, config));
