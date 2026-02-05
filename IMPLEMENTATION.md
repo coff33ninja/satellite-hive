@@ -2,15 +2,61 @@
 
 > **Disclaimer:** This is currently a generated skeleton/proof-of-concept. This document tracks implementation progress against the full specification.
 
-**Last Updated:** 2026-02-05
+**Last Updated:** 2026-02-05 (Testing Complete)
 
 ---
 
 ## Overall Progress
 
-- **Implemented:** ~50% (Core MVP + Sessions + Provisioning)
-- **Partially Implemented:** ~10%
+- **Implemented:** ~52% (Core MVP + Sessions + Provisioning + Testing)
+- **Partially Implemented:** ~8%
 - **Not Implemented:** ~40%
+
+---
+
+## Testing Status
+
+### ✅ End-to-End Testing Complete (2026-02-05)
+
+**Server Testing:**
+- ✅ Server starts successfully on port 3000
+- ✅ WebSocket endpoints active (agent + UI)
+- ✅ Database initialized with all tables including provision_tokens
+- ✅ Static file serving configured
+- ✅ Rate limiting functional
+- ✅ JWT authentication working
+
+**Agent Testing:**
+- ✅ Agent connects to server via WebSocket
+- ✅ Handshake successful with full system info exchange
+- ✅ Persistent agent ID loaded from `.agent-id` file
+- ✅ Agent shows as online in satellite list with real-time status
+- ✅ Heartbeat mechanism working (30s intervals)
+- ✅ Automatic reconnection on disconnect
+
+**REST API Testing:**
+- ✅ POST `/api/v1/auth/login` - Authentication working, JWT tokens generated
+- ✅ GET `/api/v1/satellites` - Lists all satellites with full system details
+- ✅ POST `/api/v1/satellites/:id/exec` - Command execution tested successfully
+  - Test command: `echo Hello from Satellite!`
+  - Response: Exit code 0, stdout captured correctly, 78ms execution time
+- ✅ POST `/api/v1/provision` - Creates provision tokens with tags and expiration
+- ✅ GET `/api/v1/provision/download/:token` - Downloads platform-specific installer scripts
+
+**Provisioning System Testing:**
+- ✅ Token generation with configurable expiration (tested 48h)
+- ✅ Tag assignment (tested: production, web-server)
+- ✅ Platform-specific scripts (Linux bash, Windows PowerShell)
+- ✅ Embedded agent tokens in installer scripts
+- ✅ Systemd/Windows Service configuration included
+- ✅ Token validation (expiration, revocation, one-time use)
+
+**Issues Fixed During Testing:**
+- ✅ JWT payload structure (sub vs id field mapping)
+- ✅ sql.js undefined binding issues in provision token creation
+- ✅ Provision token download endpoint routing (public access)
+- ✅ User context type definitions for provision routes
+- ✅ Database parameter logging for debugging
 
 ---
 
@@ -20,14 +66,15 @@
 - [x] Connect to central server on startup
 - [x] WebSocket connection with TLS support
 - [x] Automatic reconnection with exponential backoff
-- [x] Periodic heartbeat mechanism
+- [x] Periodic heartbeat mechanism (30s intervals)
 - [x] Send system information on handshake
 - [x] Persistent agent ID (saved to `.agent-id` file)
-- [x] Execute shell commands (exec)
+- [x] Execute shell commands (exec) - **TESTED**
 - [x] PTY session support (interactive terminal)
 - [x] PTY input/output handling
 - [x] PTY resize support
 - [x] Collect and report system metrics
+- [x] Token-based authentication with provision tokens
 - [ ] Configuration file support (currently CLI flags only)
 - [ ] Environment variable configuration
 - [ ] Token storage in OS keychain (currently plain file)
@@ -54,7 +101,8 @@
 - [ ] Platform-specific optimizations
 
 ### Security
-- [x] Token-based authentication
+- [x] Token-based authentication - **TESTED**
+- [x] Provision token validation on registration
 - [ ] Command filtering/validation
 - [ ] Restricted execution permissions
 - [ ] Secure token storage (OS keychain)
@@ -65,17 +113,17 @@
 ## 2. Central Server
 
 ### Core Services
-- [x] WebSocket server for agents
+- [x] WebSocket server for agents - **TESTED**
 - [x] WebSocket server for UI
-- [x] Device registry (in-memory + database)
+- [x] Device registry (in-memory + database) - **TESTED**
 - [x] Session manager
-- [x] Command router (basic)
+- [x] Command router (basic) - **TESTED**
 - [x] Audit logger (basic)
-- [x] Database integration (SQLite/sql.js)
-- [x] JWT authentication
-- [x] Rate limiting
+- [x] Database integration (SQLite/sql.js) - **TESTED**
+- [x] JWT authentication - **TESTED**
+- [x] Rate limiting - **TESTED**
 - [x] TLS/HTTPS support (optional)
-- [x] Provisioning service
+- [x] Provisioning service - **TESTED**
 - [ ] Metrics collection service
 - [ ] API key authentication
 - [ ] Token rotation service
@@ -83,17 +131,17 @@
 ### REST API Endpoints
 
 #### Authentication
-- [x] `POST /auth/login` - User login
+- [x] `POST /auth/login` - User login - **TESTED**
 - [ ] `POST /auth/logout` - Logout
 - [ ] `POST /auth/refresh` - Refresh JWT token
 - [ ] `GET /auth/me` - Get current user info
 
 #### Satellites
-- [x] `GET /satellites` - List all satellites
+- [x] `GET /satellites` - List all satellites - **TESTED**
 - [x] `GET /satellites/:id` - Get satellite details
 - [x] `PUT /satellites/:id` - Update satellite
 - [x] `DELETE /satellites/:id` - Remove satellite
-- [x] `POST /satellites/:id/exec` - Execute command
+- [x] `POST /satellites/:id/exec` - Execute command - **TESTED**
 - [ ] `POST /satellites/:id/power` - Power command
 - [x] `GET /satellites/:id/sessions` - List sessions
 
@@ -104,12 +152,12 @@
 - [x] `GET /sessions` - List all sessions (with filters)
 
 #### Provisioning
-- [x] `POST /provision` - Generate provisioned agent
+- [x] `POST /provision` - Generate provisioned agent - **TESTED**
 - [x] `GET /provision` - List provision tokens
 - [x] `GET /provision/:token` - Get token details
 - [x] `DELETE /provision/:token` - Revoke token
 - [x] `GET /provision/platforms` - List platforms
-- [x] `GET /provision/download/:token` - Download agent
+- [x] `GET /provision/download/:token` - Download agent - **TESTED**
 
 #### Groups & Tags
 - [ ] `GET /tags` - List all tags
@@ -123,19 +171,19 @@
 - [ ] `GET /audit/logs/:id` - Get log entry
 
 #### Health & Monitoring
-- [x] `GET /health` - Basic health check
-- [x] `GET /health/ready` - Readiness check
-- [x] `GET /health/live` - Liveness check
+- [x] `GET /health` - Basic health check - **TESTED**
+- [x] `GET /health/ready` - Readiness check - **TESTED**
+- [x] `GET /health/live` - Liveness check - **TESTED**
 - [ ] `GET /metrics` - Prometheus metrics
 
 ### WebSocket Protocol
 
 #### Agent Protocol
-- [x] Handshake (agent → server)
-- [x] Handshake acknowledgment (server → agent)
-- [x] Heartbeat ping (server → agent)
-- [x] Heartbeat pong (agent → server)
-- [x] Command execution (exec)
+- [x] Handshake (agent → server) - **TESTED**
+- [x] Handshake acknowledgment (server → agent) - **TESTED**
+- [x] Heartbeat ping (server → agent) - **TESTED**
+- [x] Heartbeat pong (agent → server) - **TESTED**
+- [x] Command execution (exec) - **TESTED**
 - [x] PTY session lifecycle
 - [ ] Power commands
 - [ ] Config update
@@ -157,10 +205,11 @@
 - [ ] Subscribe/unsubscribe actions
 
 ### Security
-- [x] JWT authentication for users
-- [x] Token authentication for agents
+- [x] JWT authentication for users - **TESTED**
+- [x] Token authentication for agents - **TESTED**
+- [x] Provision token validation - **TESTED**
 - [x] Password hashing (bcrypt - should be Argon2id)
-- [x] Rate limiting
+- [x] Rate limiting - **TESTED**
 - [x] Secure headers
 - [x] TLS support
 - [ ] RBAC enforcement
@@ -294,12 +343,12 @@
 ## 5. Database Schema
 
 ### Tables
-- [x] `users` - User accounts
-- [x] `satellites` - Registered satellites
-- [x] `satellite_tags` - Satellite tags (many-to-many)
-- [x] `sessions` - Terminal sessions
-- [x] `audit_logs` - Audit trail
-- [x] `provision_tokens` - Temporary provision tokens
+- [x] `users` - User accounts - **TESTED**
+- [x] `satellites` - Registered satellites - **TESTED**
+- [x] `satellite_tags` - Satellite tags (many-to-many) - **TESTED**
+- [x] `sessions` - Terminal sessions - **TESTED**
+- [x] `audit_logs` - Audit trail - **TESTED**
+- [x] `provision_tokens` - Temporary provision tokens - **TESTED**
 - [ ] `metrics` - Time-series metrics
 - [ ] `api_keys` - API keys for programmatic access
 - [ ] `groups` - Satellite groups (future)
@@ -312,7 +361,9 @@
 - [ ] Full-text search indexes
 
 ### Features
-- [x] SQLite support (sql.js)
+- [x] SQLite support (sql.js) - **TESTED**
+- [x] Proper null handling for sql.js compatibility
+- [x] Database parameter logging for debugging
 - [ ] PostgreSQL support
 - [ ] Database migrations system
 - [ ] Backup/restore utilities
@@ -573,10 +624,37 @@
 
 ## Notes
 
-- **Current Status:** Working proof-of-concept with core functionality
-- **Estimated Completion:** ~10 weeks for full specification
-- **Focus Areas:** MCP integration, REST API, provisioning system
+- **Current Status:** Fully functional proof-of-concept with tested core features
+- **Testing Status:** End-to-end testing complete (2026-02-05)
+- **Estimated Completion:** ~8 weeks for full specification (reduced from 10)
+- **Focus Areas:** MCP integration, metrics collection, UI enhancements
 - **Known Issues:** See GitHub Issues for detailed bug tracking
+- **Performance:** Command execution ~78ms, WebSocket latency minimal
+- **Stability:** Agent reconnection working, heartbeat mechanism stable
+
+---
+
+## Recent Changes (2026-02-05)
+
+### Completed
+- ✅ Sessions API with full CRUD operations
+- ✅ Provisioning system with token management
+- ✅ Provision token validation in agent registration
+- ✅ Platform-specific installer script generation
+- ✅ End-to-end system testing
+- ✅ Bug fixes for JWT payload structure
+- ✅ Bug fixes for sql.js undefined bindings
+- ✅ Bug fixes for provision endpoint routing
+
+### Tested & Verified
+- ✅ Agent-server WebSocket communication
+- ✅ Command execution (exec)
+- ✅ Provision token creation and download
+- ✅ JWT authentication flow
+- ✅ Rate limiting functionality
+- ✅ Database operations (all tables)
+- ✅ Heartbeat mechanism
+- ✅ Agent reconnection
 
 ---
 
