@@ -39,6 +39,7 @@ export class DeviceRegistry {
         os: data.systemInfo.os,
         osVersion: data.systemInfo.osVersion,
         arch: data.systemInfo.arch,
+        lastIp: undefined,
         lastSeen: new Date(),
         firstSeen: new Date(),
         agentVersion: data.version,

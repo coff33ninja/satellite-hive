@@ -90,6 +90,16 @@ func main() {
 		Tags:      []string{"test"},
 	}
 
+	// Print startup info
+	fmt.Printf("🛰️  Satellite Agent v%s\n", Version)
+	fmt.Printf("📡 Server: %s\n", config.ServerURL)
+	fmt.Printf("🏷️  Name: %s\n", config.Name)
+	fmt.Printf("🔑 Token: %s\n", config.Token)
+	fmt.Println()
+
+	// Verify encoding/json is available (used by websocket library)
+	_ = json.Marshal
+
 	agent := &Agent{config: config}
 
 	// Handle shutdown gracefully

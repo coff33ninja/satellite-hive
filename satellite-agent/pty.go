@@ -45,7 +45,7 @@ func (a *Agent) handlePtyStart(message map[string]interface{}) {
 		}
 	}
 
-	log.Printf("Starting PTY session %s with shell: %s", sessionID, shell)
+	fmt.Printf("[PTY] Starting session %s with shell: %s (size: %.0fx%.0f)\n", sessionID, shell, cols, rows)
 
 	// Create command
 	cmd := exec.Command(shell)

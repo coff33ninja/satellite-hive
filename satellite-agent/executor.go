@@ -19,7 +19,7 @@ func (a *Agent) handleExec(message map[string]interface{}) {
 		timeoutSec = 30
 	}
 
-	log.Printf("Executing command: %s", command)
+	fmt.Printf("[EXEC] Executing command: %s (timeout: %.0fs)\n", command, timeoutSec)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSec)*time.Second)
 	defer cancel()
@@ -63,5 +63,5 @@ func (a *Agent) handleExec(message map[string]interface{}) {
 		log.Printf("Failed to send exec result: %v", err)
 	}
 
-	log.Printf("Command completed with exit code %d", exitCode)
+	fmt.Printf("[EXEC] Command completed with exit code %d (duration: %dms)\n", exitCode, duration.Milliseconds())
 }
