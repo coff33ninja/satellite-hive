@@ -72,6 +72,19 @@ export interface Session {
   exitCode?: number;
 }
 
+export interface ProvisionToken {
+  token: string;
+  name: string;
+  tags: string[];
+  platform: 'linux' | 'windows' | 'darwin';
+  createdBy: string;
+  createdAt: Date;
+  expiresAt: Date;
+  usedAt?: Date;
+  usedBySatelliteId?: string;
+  isRevoked: boolean;
+}
+
 export interface Config {
   server: {
     host: string;

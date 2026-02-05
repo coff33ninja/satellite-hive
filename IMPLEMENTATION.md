@@ -8,9 +8,9 @@
 
 ## Overall Progress
 
-- **Implemented:** ~45% (Core MVP + Sessions API)
+- **Implemented:** ~50% (Core MVP + Sessions + Provisioning)
 - **Partially Implemented:** ~10%
-- **Not Implemented:** ~45%
+- **Not Implemented:** ~40%
 
 ---
 
@@ -75,7 +75,7 @@
 - [x] JWT authentication
 - [x] Rate limiting
 - [x] TLS/HTTPS support (optional)
-- [ ] Provisioning service
+- [x] Provisioning service
 - [ ] Metrics collection service
 - [ ] API key authentication
 - [ ] Token rotation service
@@ -104,9 +104,12 @@
 - [x] `GET /sessions` - List all sessions (with filters)
 
 #### Provisioning
-- [ ] `POST /provision` - Generate provisioned agent
-- [ ] `GET /provision/platforms` - List platforms
-- [ ] `GET /provision/download/:token` - Download agent
+- [x] `POST /provision` - Generate provisioned agent
+- [x] `GET /provision` - List provision tokens
+- [x] `GET /provision/:token` - Get token details
+- [x] `DELETE /provision/:token` - Revoke token
+- [x] `GET /provision/platforms` - List platforms
+- [x] `GET /provision/download/:token` - Download agent
 
 #### Groups & Tags
 - [ ] `GET /tags` - List all tags
@@ -296,9 +299,9 @@
 - [x] `satellite_tags` - Satellite tags (many-to-many)
 - [x] `sessions` - Terminal sessions
 - [x] `audit_logs` - Audit trail
+- [x] `provision_tokens` - Temporary provision tokens
 - [ ] `metrics` - Time-series metrics
 - [ ] `api_keys` - API keys for programmatic access
-- [ ] `provision_tokens` - Temporary provision tokens
 - [ ] `groups` - Satellite groups (future)
 - [x] `schema_migrations` - Migration tracking
 
@@ -534,11 +537,12 @@
 ## Priority Roadmap
 
 ### Phase 1: Complete Core Features (Weeks 1-2)
-1. [ ] Add missing REST API endpoints (satellites, sessions)
-2. [ ] Implement health check endpoints
-3. [ ] Add metrics table and collection
-4. [ ] Implement RBAC enforcement
-5. [ ] Add comprehensive input validation
+1. [x] Add missing REST API endpoints (satellites, sessions)
+2. [x] Implement health check endpoints
+3. [x] Provisioning system with token management
+4. [ ] Add metrics table and collection
+5. [ ] Implement RBAC enforcement
+6. [ ] Add comprehensive input validation
 
 ### Phase 2: MCP Integration (Weeks 3-4)
 6. [ ] Build MCP server with all documented tools

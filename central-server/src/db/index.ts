@@ -2,7 +2,7 @@ import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { initializeDatabase } from './schema.js';
-import type { User, Satellite, Session } from '../types/index.js';
+import type { User, Satellite, Session, ProvisionToken } from '../types/index.js';
 
 export class DB {
   private db: SqlJsDatabase;
@@ -269,6 +269,77 @@ export class DB {
       log.errorMessage || null
     ]);
     this.save();
+  }
+
+  // Provision tokens
+  createProvisionToken(token: Omit<ProvisionToken, 'usedAt' | 'usedBySatelliteId' | 'isRevoked'>) {
+    this.db.run(`
+      INSERT INTO provision_tokens (
+        token, name, tags, platform, created_by, created_at, expires_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+      token.token,
+      token.name,
+      JSON.stringify(token.tags),
+      token.platform,
+      token.createdBy,
+      token.createdAt.toISOString(),
+      token.expiresAt.toISOString()
+    ]);
+    this.save();
+  }
+
+  getProvisionToken(token: string): ProvisionToken | undefined {
+    const result = this.db.exec('SELECT * FROM provision_tokens WHERE token = ?', [token]);
+    if (!result.length || !result[0].values.length) return undefined;
+    const row = this.rowToObject(result[0].columns, result[0].values[0]);
+    return this.rowToProvisionToken(row);
+  }
+
+  markProvisionTokenUsed(token: string, satelliteId: string) {
+    this.db.run(`
+      UPDATE provision_tokens 
+      SET used_at = CURRENT_TIMESTAMP, used_by_satellite_id = ?
+      WHERE token = ?
+    `, [satelliteId, token]);
+    this.save();
+  }
+
+  revokeProvisionToken(token: string) {
+    this.db.run('UPDATE provision_tokens SET is_revoked = 1 WHERE token = ?', [token]);
+    this.save();
+  }
+
+  listProvisionTokens(createdBy?: string): ProvisionToken[] {
+    let query = 'SELECT * FROM provision_tokens ORDER BY created_at DESC';
+    const params: string[] = [];
+    
+    if (createdBy) {
+      query = 'SELECT * FROM provision_tokens WHERE created_by = ? ORDER BY created_at DESC';
+      params.push(createdBy);
+    }
+
+    const result = this.db.exec(query, params);
+    if (!result.length) return [];
+    return result[0].values.map(values => {
+      const row = this.rowToObject(result[0].columns, values);
+      return this.rowToProvisionToken(row);
+    });
+  }
+
+  private rowToProvisionToken(row: any): ProvisionToken {
+    return {
+      token: row.token,
+      name: row.name,
+      tags: JSON.parse(row.tags || '[]'),
+      platform: row.platform,
+      createdBy: row.created_by,
+      createdAt: new Date(row.created_at),
+      expiresAt: new Date(row.expires_at),
+      usedAt: row.used_at ? new Date(row.used_at) : undefined,
+      usedBySatelliteId: row.used_by_satellite_id,
+      isRevoked: row.is_revoked === 1,
+    };
   }
 
   close() {

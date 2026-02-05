@@ -85,6 +85,24 @@ export function initializeDatabase(db: SqlJsDatabase) {
     );
   `);
 
+  // Provision tokens
+  db.run(`
+    CREATE TABLE IF NOT EXISTS provision_tokens (
+      token TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      tags TEXT,
+      platform TEXT NOT NULL,
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      used_by_satellite_id TEXT,
+      is_revoked INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (created_by) REFERENCES users(id),
+      FOREIGN KEY (used_by_satellite_id) REFERENCES satellites(id)
+    );
+  `);
+
   // Create indexes
   db.run(`CREATE INDEX IF NOT EXISTS idx_satellites_status ON satellites(status);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_satellites_last_seen ON satellites(last_seen);`);
@@ -92,4 +110,6 @@ export function initializeDatabase(db: SqlJsDatabase) {
   db.run(`CREATE INDEX IF NOT EXISTS idx_sessions_satellite_id ON sessions(satellite_id);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_provision_tokens_expires_at ON provision_tokens(expires_at);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_provision_tokens_created_by ON provision_tokens(created_by);`);
 }

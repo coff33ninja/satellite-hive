@@ -16,6 +16,7 @@ import { UIHub } from './ws/uiHub.js';
 import { createAuthRouter } from './api/routes/auth.js';
 import { createSatellitesRouter } from './api/routes/satellites.js';
 import { createSessionsRouter } from './api/routes/sessions.js';
+import { createProvisionRouter } from './api/routes/provision.js';
 import { createHealthRouter } from './api/routes/health.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { rateLimit } from './middleware/rateLimit.js';
@@ -71,6 +72,14 @@ async function main() {
   const authMiddleware = createAuthMiddleware(config);
   app.use('/api/v1/satellites/*', authMiddleware);
   app.use('/api/v1/sessions/*', authMiddleware);
+  
+  // Provision routes (download endpoint is public, others require auth)
+  const provisionRouter = createProvisionRouter(db, auditLogger, config.server.external_url);
+  app.get('/api/v1/provision/download/:token', (c) => provisionRouter.fetch(c.req.raw, c.env, c.executionCtx));
+  app.get('/api/v1/provision/platforms', (c) => provisionRouter.fetch(c.req.raw, c.env, c.executionCtx));
+  app.use('/api/v1/provision/*', authMiddleware);
+  app.route('/api/v1/provision', provisionRouter);
+  
   app.route('/api/v1/satellites', createSatellitesRouter(deviceRegistry, auditLogger, agentHub, sessionManager));
   app.route('/api/v1/sessions', createSessionsRouter(sessionManager, deviceRegistry, auditLogger, agentHub));
 
