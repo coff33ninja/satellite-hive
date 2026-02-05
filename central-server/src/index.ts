@@ -23,8 +23,129 @@ import { rateLimit } from './middleware/rateLimit.js';
 import { mkdir } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { nanoid } from 'nanoid';
+import { createHash } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function generateAgentScript(token: any, serverUrl: string): string {
+  const { platform, name, tags } = token;
+  const wsUrl = serverUrl.replace('http://', 'ws://').replace('https://', 'wss://');
+  const agentToken = `agent_${nanoid(32)}`;
+  const agentTokenHash = createHash('sha256').update(agentToken).digest('hex');
+
+  if (platform === 'windows') {
+    return `# Satellite Hive Agent Installer
+# Generated for: ${name}
+# Platform: Windows
+
+$ErrorActionPreference = "Stop"
+
+Write-Host "Installing Satellite Hive Agent..."
+Write-Host "Name: ${name}"
+Write-Host "Tags: ${tags.join(', ')}"
+
+# Download agent binary
+$agentUrl = "${serverUrl}/static/satellite-agent-windows.exe"
+$installDir = "$env:ProgramFiles\\SatelliteHive"
+$agentPath = "$installDir\\satellite-agent.exe"
+
+New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+Invoke-WebRequest -Uri $agentUrl -OutFile $agentPath
+
+# Save agent token
+$tokenPath = "$installDir\\.agent-token"
+Set-Content -Path $tokenPath -Value "${agentToken}"
+
+# Create Windows Service
+$serviceName = "SatelliteHiveAgent"
+$serviceDisplayName = "Satellite Hive Agent"
+$serviceDescription = "Satellite Hive remote management agent"
+
+$params = @(
+  "-server", "${wsUrl}/ws/agent",
+  "-token", "${agentToken}",
+  "-name", "${name}"
+)
+
+${tags.length > 0 ? `$params += "-tags", "${tags.join(',')}"` : ''}
+
+New-Service -Name $serviceName -BinaryPathName "$agentPath $($params -join ' ')" -DisplayName $serviceDisplayName -Description $serviceDescription -StartupType Automatic
+Start-Service -Name $serviceName
+
+Write-Host "✓ Agent installed and started as Windows Service"
+Write-Host "✓ Agent Token: ${agentToken}"
+Write-Host ""
+Write-Host "Register this agent with the server using:"
+Write-Host "  Token Hash: ${agentTokenHash}"
+`;
+  } else {
+    // Linux/macOS
+    return `#!/bin/bash
+# Satellite Hive Agent Installer
+# Generated for: ${name}
+# Platform: ${platform}
+
+set -e
+
+echo "Installing Satellite Hive Agent..."
+echo "Name: ${name}"
+echo "Tags: ${tags.join(', ')}"
+
+# Detect architecture
+ARCH=$(uname -m)
+case $ARCH in
+  x86_64) ARCH="amd64" ;;
+  aarch64|arm64) ARCH="arm64" ;;
+  *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+esac
+
+# Download agent binary
+AGENT_URL="${serverUrl}/static/satellite-agent-${platform}-$ARCH"
+INSTALL_DIR="/opt/satellite-hive"
+AGENT_PATH="$INSTALL_DIR/satellite-agent"
+
+sudo mkdir -p "$INSTALL_DIR"
+sudo curl -fsSL "$AGENT_URL" -o "$AGENT_PATH"
+sudo chmod +x "$AGENT_PATH"
+
+# Save agent token
+TOKEN_PATH="$INSTALL_DIR/.agent-token"
+echo "${agentToken}" | sudo tee "$TOKEN_PATH" > /dev/null
+sudo chmod 600 "$TOKEN_PATH"
+
+# Create systemd service
+SERVICE_FILE="/etc/systemd/system/satellite-hive-agent.service"
+sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+[Unit]
+Description=Satellite Hive Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$AGENT_PATH -server ${wsUrl}/ws/agent -token ${agentToken} -name "${name}"${tags.length > 0 ? ` -tags "${tags.join(',')}"` : ''}
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Start service
+sudo systemctl daemon-reload
+sudo systemctl enable satellite-hive-agent
+sudo systemctl start satellite-hive-agent
+
+echo "✓ Agent installed and started as systemd service"
+echo "✓ Agent Token: ${agentToken}"
+echo ""
+echo "Register this agent with the server using:"
+echo "  Token Hash: ${agentTokenHash}"
+`;
+  }
+}
 
 async function main() {
   console.log('🛰️  Starting Satellite Hive Central Server...');
@@ -73,10 +194,37 @@ async function main() {
   app.use('/api/v1/satellites/*', authMiddleware);
   app.use('/api/v1/sessions/*', authMiddleware);
   
-  // Provision routes (download endpoint is public, others require auth)
+  // Provision routes
   const provisionRouter = createProvisionRouter(db, auditLogger, config.server.external_url);
-  app.get('/api/v1/provision/download/:token', (c) => provisionRouter.fetch(c.req.raw, c.env, c.executionCtx));
-  app.get('/api/v1/provision/platforms', (c) => provisionRouter.fetch(c.req.raw, c.env, c.executionCtx));
+  
+  // Public provision endpoints (no auth)
+  app.get('/api/v1/provision/download/:token', async (c) => {
+    const { token } = c.req.param();
+    const provisionToken = db.getProvisionToken(token);
+    
+    if (!provisionToken || provisionToken.isRevoked || provisionToken.usedAt || new Date() > provisionToken.expiresAt) {
+      return c.text('Invalid or expired provision token', 404);
+    }
+    
+    const script = generateAgentScript(provisionToken, config.server.external_url);
+    const filename = `satellite-agent-${provisionToken.platform}.${provisionToken.platform === 'windows' ? 'ps1' : 'sh'}`;
+    c.header('Content-Type', 'text/plain');
+    c.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return c.text(script);
+  });
+  
+  app.get('/api/v1/provision/platforms', async (c) => {
+    return c.json({
+      success: true,
+      data: [
+        { id: 'linux', name: 'Linux', architectures: ['amd64', 'arm64'], installer: 'shell script' },
+        { id: 'windows', name: 'Windows', architectures: ['amd64'], installer: 'PowerShell script' },
+        { id: 'darwin', name: 'macOS', architectures: ['amd64', 'arm64'], installer: 'shell script' },
+      ],
+    });
+  });
+  
+  // Protected provision endpoints
   app.use('/api/v1/provision/*', authMiddleware);
   app.route('/api/v1/provision', provisionRouter);
   

@@ -6,7 +6,8 @@ import { createHash } from 'crypto';
 
 type Variables = {
   user: {
-    id: string;
+    id?: string;
+    sub?: string;
     email?: string;
     roles: string[];
   };
@@ -51,15 +52,15 @@ export function createProvisionRouter(db: DB, auditLogger: AuditLogger, serverUr
         name,
         tags: Array.isArray(tags) ? tags : [],
         platform,
-        createdBy: user.id,
+        createdBy: user.sub || user.id || 'unknown',
         createdAt: new Date(),
         expiresAt,
       });
 
       auditLogger.log({
         actorType: 'user',
-        actorId: user.id,
-        actorName: user.email || user.id,
+        actorId: user.sub || user.id,
+        actorName: user.email || user.sub || user.id,
         action: 'provision_token_created',
         targetType: 'provision_token',
         targetId: token,
@@ -101,7 +102,7 @@ export function createProvisionRouter(db: DB, auditLogger: AuditLogger, serverUr
       // Only admins can see all tokens
       const tokens = all && user.roles.includes('admin')
         ? db.listProvisionTokens()
-        : db.listProvisionTokens(user.id);
+        : db.listProvisionTokens(user.sub || user.id);
 
       return c.json({
         success: true,
@@ -138,7 +139,7 @@ export function createProvisionRouter(db: DB, auditLogger: AuditLogger, serverUr
       }
 
       // Only creator or admin can view
-      if (provisionToken.createdBy !== user.id && !user.roles.includes('admin')) {
+      if (provisionToken.createdBy !== (user.sub || user.id) && !user.roles.includes('admin')) {
         return c.json({
           success: false,
           error: {
@@ -182,7 +183,7 @@ export function createProvisionRouter(db: DB, auditLogger: AuditLogger, serverUr
       }
 
       // Only creator or admin can revoke
-      if (provisionToken.createdBy !== user.id && !user.roles.includes('admin')) {
+      if (provisionToken.createdBy !== (user.sub || user.id) && !user.roles.includes('admin')) {
         return c.json({
           success: false,
           error: {
@@ -196,8 +197,8 @@ export function createProvisionRouter(db: DB, auditLogger: AuditLogger, serverUr
 
       auditLogger.log({
         actorType: 'user',
-        actorId: user.id,
-        actorName: user.email || user.id,
+        actorId: user.sub || user.id,
+        actorName: user.email || user.sub || user.id,
         action: 'provision_token_revoked',
         targetType: 'provision_token',
         targetId: token,

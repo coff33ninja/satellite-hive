@@ -273,19 +273,23 @@ export class DB {
 
   // Provision tokens
   createProvisionToken(token: Omit<ProvisionToken, 'usedAt' | 'usedBySatelliteId' | 'isRevoked'>) {
-    this.db.run(`
-      INSERT INTO provision_tokens (
-        token, name, tags, platform, created_by, created_at, expires_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [
+    const params = [
       token.token,
       token.name,
-      JSON.stringify(token.tags),
+      JSON.stringify(token.tags || []),
       token.platform,
       token.createdBy,
       token.createdAt.toISOString(),
       token.expiresAt.toISOString()
-    ]);
+    ];
+    
+    console.log('[DB] Creating provision token with params:', params.map((p, i) => `[${i}]: ${typeof p} = ${p === undefined ? 'UNDEFINED' : p}`));
+    
+    this.db.run(`
+      INSERT INTO provision_tokens (
+        token, name, tags, platform, created_by, created_at, expires_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, params);
     this.save();
   }
 
