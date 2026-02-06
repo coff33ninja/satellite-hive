@@ -8,6 +8,9 @@ export default function Dashboard() {
   const satellites = useHiveStore((state) => state.satellites);
   const setToken = useHiveStore((state) => state.setToken);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Suppress unused variable warning - Settings will be used for future settings page
+  void Settings;
 
   const filteredSatellites = Array.from(satellites.values()).filter((sat) => {
     if (!searchTerm) return true;

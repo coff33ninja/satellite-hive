@@ -240,21 +240,27 @@ export class AgentHub {
       
       const stmt = `
         INSERT INTO metrics (
-          satellite_id, timestamp, cpu_percent, memory_percent, 
-          disk_percent, network_rx_bytes, network_tx_bytes, active_sessions
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          id, satellite_id, timestamp, metric_type, cpu_usage, 
+          memory_percent, disk_percent, network_bytes_recv, network_bytes_sent
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
-      (db as any).db.exec(stmt, [
+      const metricId = `metric_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      
+      // Map agent metric names to database column names
+      const params = [
+        metricId,
         satelliteId,
         now,
-        metrics.cpu_percent || 0,
+        'heartbeat',
+        metrics.cpu_percent || metrics.cpu_usage || 0,
         metrics.memory_percent || 0,
         metrics.disk_percent || 0,
-        metrics.network_rx_bytes || 0,
-        metrics.network_tx_bytes || 0,
-        metrics.active_sessions || 0,
-      ]);
+        metrics.network_rx_bytes || metrics.network_bytes_recv || 0,
+        metrics.network_tx_bytes || metrics.network_bytes_sent || 0,
+      ];
+      
+      (db as any).db.run(stmt, params);
     } catch (error) {
       console.error('[AgentHub] Failed to store metrics:', error);
     }
