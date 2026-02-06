@@ -17,7 +17,7 @@ interface Session {
   status: 'active' | 'ended';
 }
 
-interface HiveState {
+export interface HiveState {
   // Auth
   token: string | null;
   user: any | null;
@@ -43,7 +43,7 @@ export const useHiveStore = create<HiveState>((set) => ({
   satellites: [],
   sessions: new Map(),
   
-  setToken: (token) => {
+  setToken: (token: string | null) => {
     if (token) {
       localStorage.setItem('token', token);
     } else {
@@ -52,23 +52,23 @@ export const useHiveStore = create<HiveState>((set) => ({
     set({ token });
   },
   
-  setUser: (user) => set({ user }),
+  setUser: (user: any) => set({ user }),
   
-  setSatellites: (satellites) => set({ satellites }),
+  setSatellites: (satellites: Satellite[]) => set({ satellites }),
   
-  updateSatellite: (id, updates) => set((state) => ({
-    satellites: state.satellites.map(s => 
+  updateSatellite: (id: string, updates: Partial<Satellite>) => set((state: HiveState) => ({
+    satellites: state.satellites.map((s: Satellite) => 
       s.id === id ? { ...s, ...updates } : s
     ),
   })),
   
-  addSession: (session) => set((state) => {
+  addSession: (session: Session) => set((state: HiveState) => {
     const sessions = new Map(state.sessions);
     sessions.set(session.id, session);
     return { sessions };
   }),
   
-  removeSession: (id) => set((state) => {
+  removeSession: (id: string) => set((state: HiveState) => {
     const sessions = new Map(state.sessions);
     sessions.delete(id);
     return { sessions };

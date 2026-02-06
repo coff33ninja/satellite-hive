@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useHiveStore } from '../store';
+import { useHiveStore, type HiveState } from '../store';
 
 interface AuditLog {
   id: string;
@@ -14,7 +14,7 @@ interface AuditLog {
 }
 
 export default function AuditLogs() {
-  const token = useHiveStore((state: any) => state.token);
+  const token = useHiveStore((state: HiveState) => state.token);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
