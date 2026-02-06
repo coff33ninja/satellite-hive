@@ -206,6 +206,21 @@ else
     exit 1
 fi
 
+# Build Web UI
+print_section "Building Web UI"
+
+cd "$START_DIR/web-ui" || exit 1
+
+echo -e "${CYAN}Running npm run build in web-ui...${NC}"
+npm run build
+
+if [ $? -eq 0 ]; then
+    print_success "Web UI built successfully"
+else
+    print_error "Failed to build web UI"
+    exit 1
+fi
+
 # Install Satellite Agent dependencies (Go modules)
 if [ $HAS_GO -eq 1 ]; then
     print_section "Installing Satellite Agent Dependencies"
@@ -245,7 +260,7 @@ cd "$START_DIR" || exit 1
 # Summary
 print_section "Installation Summary"
 print_success "Central Server: Dependencies installed"
-print_success "Web UI: Dependencies installed"
+print_success "Web UI: Dependencies installed and built"
 if [ $HAS_GO -eq 1 ]; then
     print_success "Satellite Agent: Dependencies installed"
 else

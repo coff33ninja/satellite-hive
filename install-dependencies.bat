@@ -123,6 +123,19 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 echo [OK] Web UI dependencies installed successfully
+
+echo.
+echo ==== Building Web UI ====
+echo.
+
+echo Running npm run build in web-ui...
+call npm run build
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Failed to build web UI
+    cd ..
+    exit /b 1
+)
+echo [OK] Web UI built successfully
 cd ..
 
 REM Install Satellite Agent dependencies (Go modules)
@@ -165,7 +178,7 @@ REM Summary
 echo.
 echo ==== Installation Summary ====
 echo [OK] Central Server: Dependencies installed
-echo [OK] Web UI: Dependencies installed
+echo [OK] Web UI: Dependencies installed and built
 if !HAS_GO! EQU 1 (
     echo [OK] Satellite Agent: Dependencies installed
 ) else (

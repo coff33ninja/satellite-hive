@@ -165,6 +165,26 @@ catch {
     exit 1
 }
 
+# Build Web UI
+Write-Section "Building Web UI"
+try {
+    Set-Location "$startLocation\web-ui"
+    
+    Write-Host "Running npm run build in web-ui..." -ForegroundColor Cyan
+    npm run build
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Success "Web UI built successfully"
+    } else {
+        throw "npm run build failed"
+    }
+}
+catch {
+    Write-Error-Message "Failed to build web UI: $_"
+    Set-Location $startLocation
+    exit 1
+}
+
 # Install Satellite Agent dependencies (Go modules)
 if ($hasGo) {
     Write-Section "Installing Satellite Agent Dependencies"
@@ -208,7 +228,7 @@ Set-Location $startLocation
 # Summary
 Write-Section "Installation Summary"
 Write-Success "Central Server: Dependencies installed"
-Write-Success "Web UI: Dependencies installed"
+Write-Success "Web UI: Dependencies installed and built"
 if ($hasGo) {
     Write-Success "Satellite Agent: Dependencies installed"
 } else {
