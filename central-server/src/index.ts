@@ -11,6 +11,7 @@ import { DB } from './db/index.js';
 import { DeviceRegistry } from './services/deviceRegistry.js';
 import { SessionManager } from './services/sessionManager.js';
 import { AuditLogger } from './services/auditLogger.js';
+import { MetricsCollector } from './services/metricsCollector.js';
 import { AgentHub } from './ws/agentHub.js';
 import { UIHub } from './ws/uiHub.js';
 import { createAuthRouter } from './api/routes/auth.js';
@@ -18,7 +19,13 @@ import { createSatellitesRouter } from './api/routes/satellites.js';
 import { createSessionsRouter } from './api/routes/sessions.js';
 import { createProvisionRouter } from './api/routes/provision.js';
 import { createHealthRouter } from './api/routes/health.js';
+import { createTagsRouter } from './api/routes/tags.js';
+import { createAuditRouter } from './api/routes/audit.js';
+import { createMetricsRouter } from './api/routes/metrics.js';
+import { createApiKeysRouter } from './api/routes/apiKeys.js';
 import { createAuthMiddleware } from './middleware/auth.js';
+import { createApiKeyMiddleware } from './middleware/apiKeyAuth.js';
+import { requirePermission } from './middleware/rbac.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { mkdir } from 'fs/promises';
 import { dirname, join } from 'path';
@@ -166,6 +173,7 @@ async function main() {
   const deviceRegistry = new DeviceRegistry(db);
   const sessionManager = new SessionManager(db);
   const auditLogger = new AuditLogger(db);
+  const metricsCollector = new MetricsCollector(db);
   const agentHub = new AgentHub(deviceRegistry, sessionManager, auditLogger, config);
   const uiHub = new UIHub(deviceRegistry, sessionManager, agentHub, config);
 
@@ -189,10 +197,18 @@ async function main() {
   // API routes
   app.route('/api/v1/auth', createAuthRouter(db, config));
   
+  // API key middleware (tries API key first, falls back to JWT)
+  const apiKeyMiddleware = createApiKeyMiddleware(db);
+  app.use('/api/v1/*', apiKeyMiddleware);
+  
   // Protected routes
   const authMiddleware = createAuthMiddleware(config);
   app.use('/api/v1/satellites/*', authMiddleware);
   app.use('/api/v1/sessions/*', authMiddleware);
+  app.use('/api/v1/tags/*', authMiddleware);
+  app.use('/api/v1/audit/*', authMiddleware);
+  app.use('/api/v1/metrics/*', authMiddleware);
+  app.use('/api/v1/keys/*', authMiddleware);
   
   // Provision routes
   const provisionRouter = createProvisionRouter(db, auditLogger, config.server.external_url);
@@ -230,6 +246,10 @@ async function main() {
   
   app.route('/api/v1/satellites', createSatellitesRouter(deviceRegistry, auditLogger, agentHub, sessionManager));
   app.route('/api/v1/sessions', createSessionsRouter(sessionManager, deviceRegistry, auditLogger, agentHub));
+  app.route('/api/v1/tags', createTagsRouter(deviceRegistry, auditLogger));
+  app.route('/api/v1/audit', createAuditRouter(db));
+  app.route('/api/v1/metrics', createMetricsRouter(metricsCollector, deviceRegistry));
+  app.route('/api/v1/keys', createApiKeysRouter(db));
 
   // Serve static files from web-ui/dist
   // In development, __dirname is central-server/src, so go up 2 levels then into web-ui/dist

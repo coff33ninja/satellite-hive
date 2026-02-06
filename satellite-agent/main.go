@@ -267,9 +267,61 @@ func (a *Agent) handleMessage(message map[string]interface{}) {
 		// End PTY session
 		a.handlePtyEnd(message)
 
+	case "power_command":
+		// Power management command
+		go a.handlePowerCommand(message)
+
 	default:
 		log.Printf("Unknown message type: %s", msgType)
 	}
+}
+
+func (a *Agent) handlePowerCommand(message map[string]interface{}) {
+	action, ok := message["action"].(string)
+	if !ok {
+		log.Println("Invalid power command: missing action")
+		return
+	}
+
+	log.Printf("Executing power command: %s", action)
+
+	var powerCmd PowerCommand
+	switch action {
+	case "shutdown":
+		powerCmd = PowerShutdown
+	case "reboot":
+		powerCmd = PowerReboot
+	case "sleep":
+		powerCmd = PowerSleep
+	case "hibernate":
+		powerCmd = PowerHibernate
+	default:
+		log.Printf("Unknown power command: %s", action)
+		a.conn.WriteJSON(map[string]interface{}{
+			"type":    "power_result",
+			"success": false,
+			"error":   fmt.Sprintf("Unknown power command: %s", action),
+		})
+		return
+	}
+
+	// Execute power command
+	if err := ExecutePowerCommand(powerCmd); err != nil {
+		log.Printf("Power command failed: %v", err)
+		a.conn.WriteJSON(map[string]interface{}{
+			"type":    "power_result",
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Send success response (may not reach server if system powers off quickly)
+	a.conn.WriteJSON(map[string]interface{}{
+		"type":    "power_result",
+		"success": true,
+		"action":  action,
+	})
 }
 
 func collectSystemInfo() (*SystemInfo, error) {

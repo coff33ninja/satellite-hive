@@ -50,3 +50,4 @@ certs/
 
 # Agent ID
 .agent-id
+.kiro/

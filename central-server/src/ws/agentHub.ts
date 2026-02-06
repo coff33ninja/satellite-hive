@@ -116,8 +116,13 @@ export class AgentHub {
   private handleAgentMessage(satelliteId: string, message: any, ws: WSWebSocket) {
     switch (message.type) {
       case 'heartbeat_pong':
-        // Update last seen
+        // Update last seen and store metrics if present
         this.registry.getSatellite(satelliteId);
+        
+        if (message.metrics) {
+          // Store metrics in database
+          this.storeMetrics(satelliteId, message.metrics);
+        }
         break;
 
       case 'exec_result':
@@ -227,6 +232,34 @@ export class AgentHub {
     }
   }
 
+  // Store metrics from agent
+  private async storeMetrics(satelliteId: string, metrics: any) {
+    try {
+      const db = (this.registry as any).db;
+      const now = new Date().toISOString();
+      
+      const stmt = `
+        INSERT INTO metrics (
+          satellite_id, timestamp, cpu_percent, memory_percent, 
+          disk_percent, network_rx_bytes, network_tx_bytes, active_sessions
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      (db as any).db.exec(stmt, [
+        satelliteId,
+        now,
+        metrics.cpu_percent || 0,
+        metrics.memory_percent || 0,
+        metrics.disk_percent || 0,
+        metrics.network_rx_bytes || 0,
+        metrics.network_tx_bytes || 0,
+        metrics.active_sessions || 0,
+      ]);
+    } catch (error) {
+      console.error('[AgentHub] Failed to store metrics:', error);
+    }
+  }
+
   // Send command to satellite
   sendCommand(satelliteId: string, command: any): boolean {
     const ws = this.registry.getConnection(satelliteId);
@@ -236,5 +269,15 @@ export class AgentHub {
 
     ws.send(JSON.stringify(command));
     return true;
+  }
+
+  // Send power command to satellite
+  sendPowerCommand(satelliteId: string, action: 'shutdown' | 'reboot' | 'sleep' | 'hibernate', force: boolean = false): boolean {
+    return this.sendCommand(satelliteId, {
+      type: 'power_command',
+      action,
+      force,
+      timestamp: new Date().toISOString(),
+    });
   }
 }

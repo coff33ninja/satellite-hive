@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useHiveStore } from '../store';
-import { Monitor, Terminal as TerminalIcon } from 'lucide-react';
+import { Monitor, Terminal as TerminalIcon, Settings, FileText, BarChart3, Plus } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -30,14 +30,48 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
       <header className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">🛰️ Satellite Hive</h1>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded transition"
-          >
-            Logout
-          </button>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold">🛰️ Satellite Hive</h1>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded transition"
+            >
+              Logout
+            </button>
+          </div>
+          
+          {/* Navigation */}
+          <nav className="flex gap-2">
+            <button
+              onClick={() => navigate('/')}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded flex items-center gap-2 transition"
+            >
+              <Monitor size={16} />
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate('/provision')}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded flex items-center gap-2 transition"
+            >
+              <Plus size={16} />
+              Provision
+            </button>
+            <button
+              onClick={() => navigate('/metrics')}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded flex items-center gap-2 transition"
+            >
+              <BarChart3 size={16} />
+              Metrics
+            </button>
+            <button
+              onClick={() => navigate('/audit')}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded flex items-center gap-2 transition"
+            >
+              <FileText size={16} />
+              Audit Logs
+            </button>
+          </nav>
         </div>
       </header>
 

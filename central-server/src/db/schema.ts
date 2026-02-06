@@ -103,6 +103,48 @@ export function initializeDatabase(db: SqlJsDatabase) {
     );
   `);
 
+  // Metrics table for time-series data
+  db.run(`
+    CREATE TABLE IF NOT EXISTS metrics (
+      id TEXT PRIMARY KEY,
+      satellite_id TEXT NOT NULL,
+      timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      metric_type TEXT NOT NULL,
+      cpu_usage REAL,
+      memory_total INTEGER,
+      memory_used INTEGER,
+      memory_percent REAL,
+      disk_total INTEGER,
+      disk_used INTEGER,
+      disk_percent REAL,
+      network_bytes_sent INTEGER,
+      network_bytes_recv INTEGER,
+      load_avg_1 REAL,
+      load_avg_5 REAL,
+      load_avg_15 REAL,
+      process_count INTEGER,
+      uptime_seconds INTEGER,
+      FOREIGN KEY (satellite_id) REFERENCES satellites(id) ON DELETE CASCADE
+    );
+  `);
+
+  // API keys table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      key_hash TEXT NOT NULL UNIQUE,
+      user_id TEXT NOT NULL,
+      permissions TEXT NOT NULL,
+      expires_at TEXT,
+      last_used_at TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+
   // Create indexes
   db.run(`CREATE INDEX IF NOT EXISTS idx_satellites_status ON satellites(status);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_satellites_last_seen ON satellites(last_seen);`);
@@ -112,4 +154,8 @@ export function initializeDatabase(db: SqlJsDatabase) {
   db.run(`CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_provision_tokens_expires_at ON provision_tokens(expires_at);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_provision_tokens_created_by ON provision_tokens(created_by);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_metrics_satellite_timestamp ON metrics(satellite_id, timestamp);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(timestamp);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);`);
 }
