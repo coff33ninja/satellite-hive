@@ -42,6 +42,10 @@ function generateAgentScript(token: any, serverUrl: string): string {
   const agentTokenHash = createHash('sha256').update(agentToken).digest('hex');
 
   if (platform === 'windows') {
+    const tagsArg = tags.length > 0 ? `, "-tags", "${tags.join(',')}"` : '';
+    const tagsLine = tags.length > 0 ? `\n\`$agentTags = "${tags.join(',')}"` : '';
+    const tagsArgInScript = tags.length > 0 ? `, "-tags", \`$agentTags` : '';
+    
     return `# Satellite Hive Agent Installer
 # Generated for: ${name}
 # Platform: Windows
@@ -64,27 +68,45 @@ Invoke-WebRequest -Uri $agentUrl -OutFile $agentPath
 $tokenPath = "$installDir\\.agent-token"
 Set-Content -Path $tokenPath -Value "${agentToken}"
 
-# Create Windows Service
-$serviceName = "SatelliteHiveAgent"
-$serviceDisplayName = "Satellite Hive Agent"
-$serviceDescription = "Satellite Hive remote management agent"
+# Create startup script
+$startupScript = "$installDir\\start-agent.ps1"
+$startupContent = @"
+# Satellite Hive Agent Startup Script
+\`$agentPath = "$agentPath"
+\`$serverUrl = "${wsUrl}/ws/agent"
+\`$agentToken = "${agentToken}"
+\`$agentName = "${name}"${tagsLine}
 
-$params = @(
-  "-server", "${wsUrl}/ws/agent",
-  "-token", "${agentToken}",
-  "-name", "${name}"
-)
+# Start agent in background
+Start-Process -FilePath \`$agentPath -ArgumentList "-server", \`$serverUrl, "-token", \`$agentToken, "-name", \`$agentName${tagsArgInScript} -WindowStyle Hidden -PassThru
+"@
 
-${tags.length > 0 ? `$params += "-tags", "${tags.join(',')}"` : ''}
+Set-Content -Path $startupScript -Value $startupContent
 
-New-Service -Name $serviceName -BinaryPathName "$agentPath $($params -join ' ')" -DisplayName $serviceDisplayName -Description $serviceDescription -StartupType Automatic
-Start-Service -Name $serviceName
+# Create scheduled task to run at startup
+$taskName = "SatelliteHiveAgent"
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-ExecutionPolicy Bypass -File \`"$startupScript\`""
+$trigger = New-ScheduledTaskTrigger -AtStartup
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
 
-Write-Host "✓ Agent installed and started as Windows Service"
+# Remove existing task if present
+Unregister-ScheduledTask -TaskName $taskName -Confirm:\$false -ErrorAction SilentlyContinue
+
+# Register new task
+Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Satellite Hive remote management agent" | Out-Null
+
+# Start agent now
+Write-Host "Starting agent..."
+Start-Process -FilePath $agentPath -ArgumentList "-server", "${wsUrl}/ws/agent", "-token", "${agentToken}", "-name", "${name}"${tagsArg} -WindowStyle Hidden -PassThru
+
+Write-Host ""
+Write-Host "✓ Agent installed successfully"
+Write-Host "✓ Agent will start automatically on system boot"
 Write-Host "✓ Agent Token: ${agentToken}"
 Write-Host ""
-Write-Host "Register this agent with the server using:"
-Write-Host "  Token Hash: ${agentTokenHash}"
+Write-Host "To manually start: & '$startupScript'"
+Write-Host "To stop: Stop-Process -Name satellite-agent"
 `;
   } else {
     // Linux/macOS
