@@ -88,7 +88,7 @@ export default function AuditLogs() {
               <input
                 type="text"
                 value={filters.action}
-                onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, action: e.target.value })}
                 className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
                 placeholder="login, execute, etc."
               />
@@ -99,7 +99,7 @@ export default function AuditLogs() {
               <input
                 type="text"
                 value={filters.actor}
-                onChange={(e) => setFilters({ ...filters, actor: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters({ ...filters, actor: e.target.value })}
                 className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
                 placeholder="user email or name"
               />
@@ -109,7 +109,7 @@ export default function AuditLogs() {
               <label className="block text-sm font-medium mb-2">Result</label>
               <select
                 value={filters.result}
-                onChange={(e) => setFilters({ ...filters, result: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilters({ ...filters, result: e.target.value })}
                 className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
               >
                 <option value="">All</option>
@@ -122,7 +122,7 @@ export default function AuditLogs() {
               <label className="block text-sm font-medium mb-2">Limit</label>
               <select
                 value={filters.limit}
-                onChange={(e) => setFilters({ ...filters, limit: parseInt(e.target.value) })}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilters({ ...filters, limit: parseInt(e.target.value) })}
                 className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
               >
                 <option value="25">25</option>
@@ -178,7 +178,7 @@ export default function AuditLogs() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {logs.map((log) => (
+                  {logs.map((log: AuditLog) => (
                     <tr key={log.id} className="hover:bg-gray-750">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                         {new Date(log.timestamp).toLocaleString()}
